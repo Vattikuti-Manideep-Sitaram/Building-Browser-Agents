@@ -1,0 +1,15 @@
+pandas
+playwright
+openai
+pydantic
+tabulate
+python-dotenv
+multion
+seaborn
+gradio
+pickleshare
+langsmith
+instructor
+litellm
+igraph
+plotly
