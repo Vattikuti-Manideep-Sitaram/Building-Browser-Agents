@@ -13,3 +13,4 @@ instructor
 litellm
 igraph
 plotly
+autogen-agentchat

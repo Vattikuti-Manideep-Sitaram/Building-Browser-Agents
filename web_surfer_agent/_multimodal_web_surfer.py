@@ -259,6 +259,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self._prior_metadata_hash: str | None = None
         self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.name}.MultimodalWebSurfer")
         self._chat_history: List[LLMMessage] = []
+        self.user_query = None
 
         # Define the download handler
         def _download_handler(download: Download) -> None:
@@ -434,6 +435,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
     async def on_messages_stream(
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
+        if not self.user_query:
+            print("These are the messages which I get during the on_message_stream invocation")
+            print(messages)
+            self.user_query = messages[0].content
+            print(self.user_query)
         for chat_message in messages:
             self._chat_history.append(chat_message.to_model_message())
 
@@ -570,6 +576,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 tool_names=tool_names,
                 title=page_title,
                 url=self._page.url,
+                user_request=self.user_query
             ).strip()
             
             print("The Text Prompt which is going into the LLM")
@@ -587,6 +594,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 source=self.name,
             )
         else:
+            print("This is text model")
             text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
                 state_description=state_description,
                 visible_targets=visible_targets,
