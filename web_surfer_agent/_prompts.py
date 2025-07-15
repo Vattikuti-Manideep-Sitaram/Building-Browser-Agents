@@ -1,4 +1,5 @@
-WEB_SURFER_TOOL_PROMPT_MM = """
+WEB_SURFER_TOOL_PROMPT_MM = """ 
+Important: If the Current Page is Login Page then use automatic_login tool
 {state_description}
 
 Consider the following screenshot of the page. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -13,7 +14,7 @@ When deciding between tools, consider if the request can be best addressed by:
     - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element might be more appropriate)
     - contents found elsewhere on the CURRENT WEBPAGE [{title}]({url}), in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate
     - on ANOTHER WEBSITE entirely (in which case actions like performing a new web search might be the best option)
-    - for anything related to authentication on the Login Page, actions related to authentication (e.g., entering credentials, submitting login forms) should be prioritized
+    - for anything related to authentication on the Login Page, actions related to authentication (e.g., entering credentials, submitting login forms) automatic_login tool should be prioritized
 
 **Important**: You must strictly adhere to the following user request and keep its goal in mind at all times:  
 **User Request**: {user_request}  

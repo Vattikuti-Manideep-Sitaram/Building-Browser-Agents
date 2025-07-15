@@ -1,8 +1,11 @@
 from typing import Any, Dict
 
 from autogen_core.tools._base import ParametersSchema, ToolSchema
+from playwright.async_api import Page
+import os
 
-
+os.environ["username"]="manideepsitaram143@gmail.com"
+os.environ["password"]="kannasitaram"
 def _load_tool(tooldef: Dict[str, Any]) -> ToolSchema:
     return ToolSchema(
         name=tooldef["function"]["name"],
@@ -316,23 +319,55 @@ TOOL_SLEEP: ToolSchema = _load_tool(
     }
 )
 
-def human_pause_func() -> dict:
-    print("\n🛑  Manual intervention required: please complete the action in the browser, then press Enter here to resume…")
-    input()
-    print("✅  Resuming automation.\n")
+
+async def auto_form_login(page:Page) -> dict:
+ # 1. Grab all potential login inputs
+    locator = page.locator(
+        'input[type="text"], input[type="email"], input[type="password"]'
+    )
+    inputs = await locator.all()
+
+    # 2. Normalize attribute → ENV key and fill
+    for inp in inputs:
+        raw = (
+            await inp.get_attribute("id")
+            or await inp.get_attribute("name")
+            or await inp.get_attribute("placeholder")
+            or ""
+        )
+        print(f"This is the raw for {inp} and the raw is {raw}")
+        key = raw.strip().upper().replace("-", "_").replace(" ", "_")
+        if key in os.environ:
+            await inp.fill(os.environ[key])
+            print(f"Filled `{raw}` from ENV[{key}]")
+
+    # 3. Submit the form
+    await page.click('button[type="submit"], input[type="submit"]')
+    print("Form submitted; resuming agent flow.")
+
     return {"status": "resumed"}
 
-TOOL_HUMAN_PAUSE: ToolSchema = _load_tool({
-    "function": {
-        "name": "human_pause",
-        "description": (
-            "Pause execution until the user completes something manually in the browser, "
-            "then hit Enter in the console to resume."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    },
-})
+
+TOOL_AUTOMATIC_LOGIN: ToolSchema = _load_tool(
+    {
+        "type": "function",
+        "function": {
+            "name": "automatic_login",
+            "description": (
+                "Automatically detects all text/email/password fields on the login page, "
+                "fills them from matching environment variables, submits the form, "
+                "and returns a status dict."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "object",
+                        "description": "A Playwright Page instance representing the current browser page."
+                    }
+                },
+                "required": ["page"]
+            }
+        }
+    }
+)

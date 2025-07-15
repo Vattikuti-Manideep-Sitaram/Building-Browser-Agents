@@ -62,13 +62,15 @@ from ._tool_definitions import (
     TOOL_TYPE,
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
-    TOOL_HUMAN_PAUSE,
-    human_pause_func
+    TOOL_AUTOMATIC_LOGIN,
+    auto_form_login
 )
 from ._types import InteractiveRegion, UserContent
 from .playwright_controller import PlaywrightController
 
 DEFAULT_CONTEXT_SIZE = 128000
+
+
 
 
 class MultimodalWebSurferConfig(BaseModel):
@@ -286,7 +288,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             TOOL_SUMMARIZE_PAGE,
             TOOL_SLEEP,
             TOOL_HOVER,
-            TOOL_HUMAN_PAUSE
+            TOOL_AUTOMATIC_LOGIN
         ]
         self.did_lazy_init = False  # flag to check if we have initialized the browser
 
@@ -786,9 +788,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             action_description = "I am waiting a short period of time before taking further action."
             await self._playwright_controller.sleep(self._page, 3)
         
-        elif name == "human_pause":
-        # Call the helper that blocks for user input
-            human_pause_func()  
+        elif name == "automatic_login":
+            action_description="I am logging in with the User credentials from the .env file"
+            await auto_form_login(self._page)  
 
         else:
             raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
