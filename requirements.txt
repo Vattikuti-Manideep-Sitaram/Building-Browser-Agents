@@ -14,3 +14,4 @@ litellm
 igraph
 plotly
 autogen-agentchat
+autogen_ext

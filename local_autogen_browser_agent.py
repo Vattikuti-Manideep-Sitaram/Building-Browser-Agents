@@ -9,9 +9,6 @@ async def main() -> None:
         name="MultimodalWebSurfer",
         model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"),
         headless=False,
-        animate_actions=True,
-        to_save_screenshots=True,
-        debug_dir="./screenshots"
         # page_script_path="web_surfer_agent/page_script.js",
     )
 

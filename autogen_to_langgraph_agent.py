@@ -4,12 +4,15 @@ from langgraph.graph import StateGraph, END
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from web_surfer_agent import MultimodalWebSurfer
+from typing import List
+from autogen_agentchat.messages import  BaseChatMessage,TextMessage
 
 # Define the state schema
 class BrowserState(TypedDict):
     task: str
     status: str
     result: Dict[str, Any]
+    scratch_pad: List[...]
     error: str | None
 
 # Initialize the web surfer
@@ -18,7 +21,7 @@ web_surfer = MultimodalWebSurfer(
     model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"),
     headless=False,
     animate_actions=True,
-    to_save_screenshots=True,
+    # to_save_screenshots=True,
     debug_dir="./screenshots"
 )
 
@@ -26,8 +29,9 @@ web_surfer = MultimodalWebSurfer(
 async def execute_task(state: BrowserState) -> BrowserState:
     print(f"Executing task: {state['task'].strip()}...")
     try:
-        stream = web_surfer.run_stream(task=state["task"])
-        await Console(stream)
+        stream =await web_surfer.on_messages(messages=[TextMessage(source="user",content=state["task"])],cancellation_token=None)
+        print("This is the agent response")
+        print(stream)
         state["status"] = "completed"
         state["result"] = {"task_execution": "success"}
     except Exception as e:

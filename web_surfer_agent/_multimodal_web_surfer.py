@@ -438,10 +438,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         if not self.user_query:
-            print("These are the messages which I get during the on_message_stream invocation")
-            print(messages)
             self.user_query = messages[0].content
-            print(self.user_query)
         for chat_message in messages:
             self._chat_history.append(chat_message.to_model_message())
 
@@ -580,9 +577,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 url=self._page.url,
                 user_request=self.user_query
             ).strip()
-            
-            print("The Text Prompt which is going into the LLM")
-            print(text_prompt)
 
             # Scale the screenshot for the MLM, and close the original
             scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
@@ -596,7 +590,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 source=self.name,
             )
         else:
-            print("This is text model")
             text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
                 state_description=state_description,
                 visible_targets=visible_targets,
@@ -613,30 +606,16 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         history.append(prompt_message)
         history.append(user_request)
         
-        # print("This is History at some execution")
-        # print(history)
-
-        # {history[-2].content if isinstance(history[-2].content, str) else history[-2].content[0]}
-        # print(f"""
-        # ================={len(history)}=================
-        # {history[-2].content}
-        # =====
-        # {history[-1].content}
-        # ===================================================
-        # """)
-
+   
         # Make the request
+  
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
 
         self.model_usage.append(response.usage)
         message = response.content
-        print("This is the Response from the LLM")
-        print(message)
-        
-        print("This is the Chat History of a complete LLM Call")
-        print(self._chat_history)
+        print(f"\033[32m{message}\033[0m")
         self._last_download = None
         if isinstance(message, str):
             # Answer directly
@@ -644,7 +623,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             return message
         elif isinstance(message, list):
             # Take an action
-            return await self._execute_tool(message, rects, tool_names, cancellation_token=cancellation_token)
+            content = await self._execute_tool(message, rects, tool_names, cancellation_token=cancellation_token)
+            self._chat_history.append(AssistantMessage(content=content_to_str(content), source=self.name))
+            await self._generate_reply(None)
         else:
             # Not sure what happened here
             raise AssertionError(f"Unknown response format '{message}'")
