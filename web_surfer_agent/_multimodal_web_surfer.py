@@ -227,6 +227,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         to_resize_viewport: bool = True,
         playwright: Playwright | None = None,
         context: BrowserContext | None = None,
+        state = None
     ):
         """
         Initialize the MultimodalWebSurfer.
@@ -262,6 +263,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.name}.MultimodalWebSurfer")
         self._chat_history: List[LLMMessage] = []
         self.user_query = None
+        self.state = state
 
         # Define the download handler
         def _download_handler(download: Download) -> None:
@@ -431,6 +433,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
+                self.state["scratch_pad"] =  self._chat_history
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
@@ -447,6 +450,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content_to_str(content), source=self.name))
+            self.state["scratch_pad"] =  self._chat_history
             final_usage = RequestUsage(
                 prompt_tokens=sum([u.prompt_tokens for u in self.model_usage]),
                 completion_tokens=sum([u.completion_tokens for u in self.model_usage]),
@@ -636,6 +640,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         rects: Dict[str, InteractiveRegion],
         tool_names: str,
         cancellation_token: Optional[CancellationToken] = None,
+        
     ) -> UserContent:
         # Execute the tool
         name = message[0].name
@@ -652,7 +657,21 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             )
         )
         self.inner_messages.append(TextMessage(content=f"{name}( {json.dumps(args)} )", source=self.name))
-
+        
+        # For each FunctionCall in the message list, replace target_id with target_name if present
+        for m in message:
+            try:
+                args_dict = json.loads(m.arguments)
+            except Exception:
+                continue
+            if "target_id" in args_dict:
+                target_id = str(args_dict["target_id"])
+                target_name = self._target_name(target_id, rects)
+                if target_name:
+                    args_dict["target_name"] = target_name
+                    m.arguments = json.dumps(args_dict)
+            self.state["playwright_actions"].append(m)
+        
         if name == "visit_url":
             url = args.get("url")
             action_description = f"I typed '{url}' into the browser address bar."
