@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q Test AI</title>
+</head>
+
+<body>
+    <h2> Q Test AI</h2>
+    <h5 id="userID">userID :</h5>
+    <form action="#" method="post" autocomplete="off">
+        <p>
+            <label for="jiraKey">Jira Key:</label>
+            <input type="text" id="jiraKey" name="jiraKey" placeholder="Enter Jira Key" required>
+            <button type="button" id="generateFeatureBtn" onclick="sampleClicked()">Generate Feature file</button>
+        </p>
+        <p>
+            <label for="featureFile">Feature File Text:</label>
+        </p>
+        <p>
+            <textarea id="featureFile" name="featureFile" rows="4" cols="50" required>Loading....</textarea>
+        </p>
+        <p>
+            <input type="submit" id="approveBtn" value="Approve">
+        </p>
+    </form>
+
+
+</body>
+
+<script>
+
+    window.addEventListener('DOMContentLoaded', () => {
+    fetch('http://localhost:8000/get-userId')
+        .then(response => response.json())
+        .then(data => {
+           let sessionId = data.userId
+            console.log('Session ID:', sessionId);
+            document.getElementById('userID').textContent = `userId : ${sessionId}`;
+           
+        })
+        .catch(error => {
+            console.error('Error fetching session ID:', error);
+        });
+});
+
+function sampleClicked(){
+    console.log("Clicked")
+    const sessionId = document.getElementById('userID').textContent.split(':')[1].trim();
+    const jiraKey = document.getElementById('jiraKey').value.trim();
+    console.log(sessionId,jiraKey)
+    if (jiraKey) {
+        startWorkflow(sessionId, jiraKey)
+            .then(result => {
+                console.log('Workflow started:', result);
+                document.getElementById('featureFile').value = result.feature_file || 'No feature file returned.';
+                // Optionally, show a message to the user
+            })
+            .catch(error => {
+                // Optionally, show an error message to the user
+            });
+    }
+}
+
+document.getElementById('approveBtn').addEventListener('click', function(event) {
+    event.preventDefault();
+    const sessionId = document.getElementById('userID').textContent.split(':')[1].trim();
+    const featureFile = document.getElementById('featureFile').value;
+    fetch('http://localhost:8000/resume-workflow', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            thread_id: sessionId,
+            approved: true,
+            feature_file: featureFile
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Optionally handle success
+        console.log('Workflow resumed:', data);
+    })
+    .catch(error => {
+        // Optionally handle error
+        console.error('Error resuming workflow:', error);
+    });
+});
+
+const startWorkflow = (userId, jiraKey) => {
+    const url = `http://localhost:8000/start-workflow/user/${userId}/jira/${jiraKey}`;
+    return fetch(url, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .catch(error => {
+        console.error('Error starting workflow:', error);
+        throw error;
+    });
+}
+
+</script>
+
+</html>

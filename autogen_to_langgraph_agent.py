@@ -7,6 +7,9 @@ from web_surfer_agent import MultimodalWebSurfer
 from typing import List
 from autogen_agentchat.messages import  BaseChatMessage,TextMessage
 
+
+
+
 # Define the state schema
 class BrowserState(TypedDict):
     task: str
@@ -17,6 +20,18 @@ class BrowserState(TypedDict):
     error: str | None
 
 
+async def feature_file_generation(state: BrowserState) -> BrowserState:
+    
+    state["task"] = """
+    Feature: Registration Page Experience Selection
+
+  Scenario: User selects Senior Level experience during registration
+    Given the user navigates to "https://jovial-clafoutis-56d393.netlify.app/"
+    When the user selects "Senior Level (6–10 years)" from the "Experience Level" dropdown
+    Then the selected experience level should be "Senior Level (6–10 years)"
+
+    """
+    return state
 
 # Single node to execute the full task
 async def execute_task(state: BrowserState) -> BrowserState:
@@ -45,24 +60,18 @@ async def execute_task(state: BrowserState) -> BrowserState:
 # Define the LangGraph workflow
 def create_workflow():
     workflow = StateGraph(BrowserState)
+    workflow.add_node("feature_file_node",feature_file_generation)
     workflow.add_node("execute_task", execute_task)
+    workflow.add_edge("feature_file_node","execute_task")
     workflow.add_edge("execute_task", END)
-    workflow.set_entry_point("execute_task")
+    workflow.set_entry_point("feature_file_node")
     return workflow.compile()
 
 # Main function
 async def main() -> None:
     try:
         initial_state: BrowserState = {
-            "task": """
-Feature: Registration Page Experience Selection
-
-  Scenario: User selects Senior Level experience during registration
-    Given the user navigates to "https://jovial-clafoutis-56d393.netlify.app/"
-    When the user selects "Senior Level (6–10 years)" from the "Experience Level" dropdown
-    Then the selected experience level should be "Senior Level (6–10 years)"
-
-            """,
+            "task": "",
             "status": "initial",
             "result": {},
             "error": None,

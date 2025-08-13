@@ -670,7 +670,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 if target_name:
                     args_dict["target_name"] = target_name
                     m.arguments = json.dumps(args_dict)
-            self.state["playwright_actions"].append(m)
+                self.state["playwright_actions"].append(m)
         
         if name == "visit_url":
             url = args.get("url")
